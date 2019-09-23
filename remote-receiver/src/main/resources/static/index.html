@@ -1,0 +1,67 @@
+<html>
+<head>
+    <title>Test Receiver/Producer</title>
+    <link rel="stylesheet" href="spectre.min.css">
+</head>
+
+<body class="bg-gray" style="padding: 1rem .5rem">
+
+<div class="section">
+    <div class="container grid-lg">
+        <h1 class="text-center" id="appName">Test Receiver/Producer</h1>
+
+        <div class="columns">
+            <div class="column col-6">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title h5">Messages Generated</div>
+                    </div>
+                    <div class="card-body">
+                        <span id="messagesSent" class="h1">-</span>
+                    </div>
+                </div>
+            </div>
+            <div class="column col-6">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title h5">Messages Received</div>
+                    </div>
+                    <div class="card-body">
+                        <span id="messagesReceived" class="h1">-</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+</div>
+
+<script type="text/javascript">
+    function updateCounts() {
+        var request = new XMLHttpRequest();
+        request.open('GET', '/metrics', true);
+
+        request.onload = function() {
+            console.log(request.responseText);
+            var data = JSON.parse(request.responseText);
+            var appContext = request.getResponseHeader('X-Application-Context');
+            console.log("App context is: " + appContext);
+            var sent = document.getElementById('messagesSent');
+            var received = document.getElementById('messagesReceived');
+            var appName = document.getElementById('appName');
+            appName.textContent = appContext;
+            sent.textContent = data.counters['messages.generated'].count;
+            received.textContent = data.counters['messages.received'].count;
+        };
+
+        request.send();
+    }
+
+    //updateAppStuff();
+    var intervalID = window.setInterval(updateCounts, 1000);
+
+</script>
+
+</body>
+</html>
