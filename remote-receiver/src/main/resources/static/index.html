@@ -34,31 +34,67 @@
 
         </div>
 
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title h5">Send some test messages</div>
+            </div>
+            <div class="card-body">
+                <div class="form-group">
+                    <label class="form-label" for="dest-address">Destination address</label>
+                    <input class="form-input" type="text" id="dest-address" value="acme.corp.london"/>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="msg-count">Number of messages</label>
+                    <input class="form-input" type="text" id="msg-count" value="100"/>
+                </div>
+                <button class="btn" onClick="startTest();">Send!</button>
+            </div>
+        </div>
+
+
     </div>
+
 </div>
 
 <script type="text/javascript">
+    function startTest() {
+        var request = new XMLHttpRequest();
+        var destAddress = document.getElementById('dest-address');
+        var msgCount = document.getElementById('msg-count');
+        var params = "address=" + destAddress.value + "&count=" + msgCount.value;
+        console.log(params);
+        request.open('GET', '/camel/send?' + params, true);
+        request.send();
+    }
+
     function updateCounts() {
         var request = new XMLHttpRequest();
         request.open('GET', '/metrics', true);
 
         request.onload = function() {
-            console.log(request.responseText);
+            //console.log(request.responseText);
             var data = JSON.parse(request.responseText);
             var appContext = request.getResponseHeader('X-Application-Context');
-            console.log("App context is: " + appContext);
             var sent = document.getElementById('messagesSent');
             var received = document.getElementById('messagesReceived');
             var appName = document.getElementById('appName');
             appName.textContent = appContext;
-            sent.textContent = data.counters['messages.generated'].count;
-            received.textContent = data.counters['messages.received'].count;
+            try {
+                sent.textContent = data.counters['messages.generated'].count;
+            } catch(err) {
+                sent.textContent = '0';
+            }
+            try {
+                received.textContent = data.counters['messages.received'].count;
+            } catch(err) {
+                received.textContent = '0';
+            }
         };
 
         request.send();
     }
 
-    //updateAppStuff();
+    updateCounts();
     var intervalID = window.setInterval(updateCounts, 1000);
 
 </script>

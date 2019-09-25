@@ -1,0 +1,122 @@
+---
+apiVersion: v1
+kind: Template
+metadata:
+  name: receiver-app
+labels:
+  template: receiver-app
+parameters:
+- name: APP_NAME
+  displayName: Application Name
+  required: true
+  description: The name that will be given to application objects, e.g. sales, marketing.
+- name: IMAGE_STREAM_NAMESPACE
+  displayName: Image Stream Namespace
+  required: true
+  description: The namespace where the image stream for the application is located
+objects:
+- apiVersion: apps.openshift.io/v1
+  kind: DeploymentConfig
+  metadata:
+    name: ${APP_NAME}-receiver
+    labels:
+      app: ${APP_NAME}-receiver
+  spec:
+    replicas: 1
+    revisionHistoryLimit: 10
+    selector:
+      app: ${APP_NAME}-receiver
+      deploymentconfig: ${APP_NAME}-receiver
+    strategy:
+      activeDeadlineSeconds: 21600
+      resources: {}
+      rollingParams:
+        intervalSeconds: 1
+        maxSurge: 25%
+        maxUnavailable: 25%
+        timeoutSeconds: 600
+        updatePeriodSeconds: 1
+      type: Rolling
+    template:
+      metadata:
+        labels:
+          app: ${APP_NAME}-receiver
+          deploymentconfig: ${APP_NAME}-receiver
+      spec:
+        containers:
+        - env:
+          - name: SPRING_APPLICATION_NAME
+            value: ${APP_NAME}-app
+          - name: AMQP_URL
+            value: amqp://${APP_NAME}-broker-amqp:5672
+          imagePullPolicy: Always
+          readinessProbe:
+            httpGet:
+              path: "/health"
+              port: 8081
+            initialDelaySeconds: 10
+          livenessProbe:
+            httpGet:
+              path: "/health"
+              port: 8081
+            initialDelaySeconds: 180
+          name: ${APP_NAME}-receiver
+          ports:
+          - containerPort: 8080
+            protocol: TCP
+          - containerPort: 9779
+            protocol: TCP
+          - containerPort: 8778
+            protocol: TCP
+            name: jolokia
+          resources:
+            requests:
+              memory: 256Mi
+            limits:
+              memory: 1Gi
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+    test: false
+    triggers:
+    - type: ConfigChange
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - ${APP_NAME}-receiver
+        from:
+          kind: ImageStreamTag
+          name: receiver-app:latest
+          namespace: ${IMAGE_STREAM_NAMESPACE}
+      type: ImageChange
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: ${APP_NAME}-receiver
+    labels:
+      app: ${APP_NAME}-receiver
+  spec:
+    ports:
+    - name: 8080-tcp
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
+    selector:
+      app: ${APP_NAME}-receiver
+      deploymentconfig: ${APP_NAME}-receiver
+    sessionAffinity: None
+    type: ClusterIP
+- apiVersion: v1
+  kind: Route
+  metadata:
+    labels:
+      app: ${APP_NAME}-receiver
+    name: ${APP_NAME}-receiver
+  spec:
+    to:
+      kind: Service
+      name: ${APP_NAME}-receiver

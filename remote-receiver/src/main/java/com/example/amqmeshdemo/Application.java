@@ -2,9 +2,11 @@ package com.example.amqmeshdemo;
 
 import org.apache.activemq.jms.pool.PooledConnectionFactory;
 import org.apache.camel.component.amqp.AMQPComponent;
+import org.apache.camel.component.servlet.CamelHttpTransportServlet;
 import org.apache.qpid.jms.JmsConnectionFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.web.servlet.ServletRegistrationBean;
 import org.springframework.context.annotation.Bean;
  
 /**
@@ -28,5 +30,14 @@ public class Application {
 
 		return new AMQPComponent(factory);
 	}
+
+	@Bean
+	public ServletRegistrationBean camelServlet() {
+		ServletRegistrationBean servlet = new ServletRegistrationBean(
+				new CamelHttpTransportServlet(), "/camel/*");
+		servlet.setName("CamelServlet");
+		return servlet;
+	}
+
 
 }
