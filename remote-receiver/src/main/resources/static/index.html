@@ -1,0 +1,103 @@
+<html>
+<head>
+    <title>Test Receiver/Producer</title>
+    <link rel="stylesheet" href="spectre.min.css">
+</head>
+
+<body class="bg-gray" style="padding: 1rem .5rem">
+
+<div class="section">
+    <div class="container grid-lg">
+        <h1 class="text-center" id="appName">Test Receiver/Producer</h1>
+
+        <div class="columns">
+            <div class="column col-6">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title h5">Messages Generated</div>
+                    </div>
+                    <div class="card-body">
+                        <span id="messagesSent" class="h1">-</span>
+                    </div>
+                </div>
+            </div>
+            <div class="column col-6">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title h5">Messages Received</div>
+                    </div>
+                    <div class="card-body">
+                        <span id="messagesReceived" class="h1">-</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title h5">Send some test messages</div>
+            </div>
+            <div class="card-body">
+                <div class="form-group">
+                    <label class="form-label" for="dest-address">Destination address</label>
+                    <input class="form-input" type="text" id="dest-address" value="acme.corp.london"/>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="msg-count">Number of messages</label>
+                    <input class="form-input" type="text" id="msg-count" value="100"/>
+                </div>
+                <button class="btn" onClick="startTest();">Send!</button>
+            </div>
+        </div>
+
+
+    </div>
+
+</div>
+
+<script type="text/javascript">
+    function startTest() {
+        var request = new XMLHttpRequest();
+        var destAddress = document.getElementById('dest-address');
+        var msgCount = document.getElementById('msg-count');
+        var params = "address=" + destAddress.value + "&count=" + msgCount.value;
+        console.log(params);
+        request.open('GET', '/camel/send?' + params, true);
+        request.send();
+    }
+
+    function updateCounts() {
+        var request = new XMLHttpRequest();
+        request.open('GET', '/metrics', true);
+
+        request.onload = function() {
+            //console.log(request.responseText);
+            var data = JSON.parse(request.responseText);
+            var appContext = request.getResponseHeader('X-Application-Context');
+            var sent = document.getElementById('messagesSent');
+            var received = document.getElementById('messagesReceived');
+            var appName = document.getElementById('appName');
+            appName.textContent = appContext;
+            try {
+                sent.textContent = data.counters['messages.generated'].count;
+            } catch(err) {
+                sent.textContent = '0';
+            }
+            try {
+                received.textContent = data.counters['messages.received'].count;
+            } catch(err) {
+                received.textContent = '0';
+            }
+        };
+
+        request.send();
+    }
+
+    updateCounts();
+    var intervalID = window.setInterval(updateCounts, 1000);
+
+</script>
+
+</body>
+</html>
